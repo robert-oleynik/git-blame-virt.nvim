@@ -254,11 +254,11 @@ function M.ts_dump_tree(node, D)
 		node = tree:root()
 	end
 	for child in node:iter_children() do
+		local b, _, e, _ = child:range()
+		print(string.rep('  ', d), child, b .. ':' .. e)
 		if child:child_count() > 0 then
 			M.ts_dump_tree(child, d + 1)
 		end
-		local b, _, e, _ = child:range()
-		print(string.rep('  ', d), child, b .. ':' .. e)
 	end
 end
 
