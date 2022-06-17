@@ -10,7 +10,6 @@ function M.ts_chunks(node)
 				type = child:type(),
 				first = first + 1,
 				last = last + 1,
-				indent = indent
 			})
 		end
 		if child:child_count() > 0 then

@@ -30,7 +30,6 @@ function M.ts_chunks(node)
 					type = child:type(),
 					first = first + 1,
 					last = last + 1,
-					indent = indent,
 				})
 				local sub_chunks = M.ts_chunks(child)
 				chunks = utils.append(chunks, sub_chunks)

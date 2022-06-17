@@ -139,12 +139,14 @@ function M.display_blame_info(buf, chunk, info)
 		end
 		line = line  .. u .. ' ' .. unit .. ' ago'
 	end
+
 	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first-1, chunk.first, true)[1]
+	local indent = text_line:find('[^%s]+', 1)
 
 	vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
 		virt_lines = {
 			{
-				{ text_line:sub(1, chunk.indent):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
+				{ text_line:sub(1, indent-1):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
 				{ line, vim.g.git_blame_virt.higroup }
 			}
 		},
