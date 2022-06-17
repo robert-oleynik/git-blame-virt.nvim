@@ -1,6 +1,19 @@
 local M = {}
 M.git_blame_virt_ns = -1
 
+-- Extract all lua functions. Returns a list of all function stored inside this node. All lines are 1-indexed.
+--
+-- Result:
+-- ```
+-- {
+--    {
+--	      first = <line>,
+--	      last = <line>,
+--	      type = <treesitter type>,
+--	      indent = <char offset>
+--    }, ...
+-- }
+-- ```- A function is identified by type `ty`
 function M.ts_type_extract(node, types, D)
 	local d = 0
 	if D then
@@ -34,25 +47,15 @@ function M.ts_type_extract(node, types, D)
 	return chunks
 end
 
--- Extract all lua functions. Returns a list of all function stored inside this node. All lines are 1-indexed.
---
--- Result:
--- ```
--- {
---    {
---	      first = <line>,
---	      last = <line>
---    }, ...
--- }
--- ```- A function is identified by type `ty`
-function M.ts_extract_lua(node)
-	return M.ts_type_extract(node, {'function_decleration'})
-end
-
--- Extract all rust functions, impl blocks and structs as range from `node`.
-function M.ts_extract_rust(node)
-	return M.ts_type_extract(node, {'function_item', 'impl_item', 'struct_item'})
-end
+M.lang = {
+	lua = function(node)
+		print(node)
+		return M.ts_type_extract(node, {'function_declaration'})
+	end,
+	rust = function(node)
+		return M.ts_type_extract(node, {'function_item', 'impl_item', 'struct_item'})
+	end
+}
 
 function M.display_blame_info(buf, chunk, info)
 	local line = ''
@@ -228,10 +231,10 @@ end
 -- ```
 function M.ts_extract_chunks(bufnr)
 	local ft = vim.api.nvim_buf_get_option(bufnr, 'filetype')
-	if type(M['ts_extract_' .. ft]) == 'function' then
+	if type(M.lang[ft]) == 'function' then
 		local parser = vim.treesitter.get_parser(bufnr)
 		local tree = parser:parse()[1]
-		return M['ts_extract_' .. ft](tree:root())
+		return M.lang[ft](tree:root())
 	end
 	return nil
 end
@@ -274,6 +277,7 @@ function M.setup(options)
 		callback = function()
 			local buf = vim.api.nvim_get_current_buf()
 			local name = vim.api.nvim_buf_get_name(buf)
+			print("Index:", name)
 			if not vim.api.nvim_buf_get_option(buf, 'modified') then
 				vim.api.nvim_buf_clear_namespace(buf, M.git_blame_virt_ns, 0, -1)
 				local chunks = M.ts_extract_chunks(buf)
