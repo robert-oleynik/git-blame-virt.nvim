@@ -14,22 +14,14 @@ M.git_blame_virt_ns = -1
 --    }, ...
 -- }
 -- ```- A function is identified by type `ty`
-function M.ts_type_extract(node, types, D)
-	local d = 0
-	if D then
-		d = D
-	end
+function M.ts_type_extract(node, types)
 	local chunks = {}
 	for child in node:iter_children() do
 		if child:child_count() > 0 then
-			local cchunks = M.ts_type_extract(child, types, d + 1)
+			local cchunks = M.ts_type_extract(child, types)
 			for _,c in ipairs(cchunks) do
 				table.insert(chunks, c)
 			end
-		end
-
-		if vim.g.git_blame_virt.debug then
-			print(string.rep('  ', d), child, child:range())
 		end
 
 		for _,ty in ipairs(types) do
@@ -62,6 +54,12 @@ M.lang = {
 			'struct_specifier'
 		})
 	end,
+	c = function(node)
+		return M.ts_type_extract(node, {
+			'function_definition',
+			'struct_specifier'
+		})
+	end
 }
 
 function M.display_blame_info(buf, chunk, info)
@@ -91,7 +89,7 @@ function M.display_blame_info(buf, chunk, info)
 		line = line .. vim.g.git_blame_virt.icons.committer .. committers .. ' '
 		prev = true
 	end
-	if vim.g.git_blame_virt.config.display_time then
+	if vim.g.git_blame_virt.config.display_time and not info.commit.timestamp == 0 then
 		local commit_time = os.time({
 			day = 1,
 			month = 1,
