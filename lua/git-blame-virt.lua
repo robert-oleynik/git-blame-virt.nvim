@@ -1,44 +1,6 @@
 local M = {}
 M.git_blame_virt_ns = -1
 
--- Extract all lua functions. Returns a list of all function stored inside this node. All lines are 1-indexed.
---
--- Result:
--- ```
--- {
---    {
---	      first = <line>,
---	      last = <line>,
---	      type = <treesitter type>,
---	      indent = <char offset>
---    }, ...
--- }
--- ```- A function is identified by type `ty`
-function M.ts_type_extract(node, types)
-	local chunks = {}
-	for child in node:iter_children() do
-		if child:child_count() > 0 then
-			local cchunks = M.ts_type_extract(child, types)
-			for _,c in ipairs(cchunks) do
-				table.insert(chunks, c)
-			end
-		end
-
-		for _,ty in ipairs(types) do
-			if child:type() == ty then
-				local first, indent, last, _ = child:range()
-				table.insert(chunks, {
-					type = ty,
-					first = first + 1,
-					last = last + 1,
-					indent = indent,
-				})
-			end
-		end
-	end
-	return chunks
-end
-
 M.lang = {
 	lua = function(node)
 		local chunks = require'git-blame-virt.lang.lua'.ts_chunks(node)
