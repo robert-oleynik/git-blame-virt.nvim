@@ -7,7 +7,7 @@ function M.ts_chunks(node)
 	local chunks = {}
 	local attribute = 0
 	for child in node:iter_children() do
-		local first, indent, last, _ = child:range()
+		local first, _, last, _ = child:range()
 		if attribute ~= 0 then
 			first = attribute
 		end

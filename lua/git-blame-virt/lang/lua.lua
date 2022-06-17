@@ -4,7 +4,7 @@ local utils = require'git-blame-virt.utils'
 function M.ts_chunks(node)
 	local chunks = {}
 	for child in node:iter_children() do
-		local first, indent, last, _ = child:range()
+		local first, _, last, _ = child:range()
 		if child:type() == 'function_declaration' or child:type() == 'function_definition' then
 			table.insert(chunks, {
 				type = child:type(),
