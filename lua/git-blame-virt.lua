@@ -115,11 +115,11 @@ function M.display_blame_info(buf, chunk, info)
 		elseif diff < 2592000 then
 			u = (diff / 86400)
 			unit = 'day'
-		elseif diff < 946080000 then
+		elseif diff < 31536000 then
 			u = (diff / 2592000)
 			unit = 'month'
 		else
-			u = (diff / 946080000)
+			u = (diff / 31536000)
 			unit = 'year'
 		end
 		u = math.floor(u * 10) / 10;
