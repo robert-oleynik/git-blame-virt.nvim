@@ -1,5 +1,5 @@
 local M = {}
-M.git_blame_ns = -1
+M.git_blame_virt_ns = -1
 
 function M.ts_type_extract(node, types, D)
 	local d = 0
@@ -15,7 +15,7 @@ function M.ts_type_extract(node, types, D)
 			end
 		end
 
-		if vim.g.git_blame.debug then
+		if vim.g.git_blame_virt.debug then
 			print(string.rep('  ', d), child, child:range())
 		end
 
@@ -57,14 +57,14 @@ end
 function M.display_blame_info(buf, chunk, info)
 	local line = ''
 	local prev = false
-	if vim.g.git_blame.config.display_commit then
-		line = line .. vim.g.git_blame.icons.git .. ' ' .. info.commit.hash .. ' '
+	if vim.g.git_blame_virt.config.display_commit then
+		line = line .. vim.g.git_blame_virt.icons.git .. ' ' .. info.commit.hash .. ' '
 		prev = true
 	end
-	if vim.g.git_blame.config.display_committers then
+	if vim.g.git_blame_virt.config.display_committers then
 		local committers = ''
 		for i,committer in ipairs(info.committers) do
-			if i > vim.g.git_blame.config.max_committers then
+			if i > vim.g.git_blame_virt.config.max_committers then
 				break
 			end
 			if committers ~= '' then
@@ -72,16 +72,16 @@ function M.display_blame_info(buf, chunk, info)
 			end
 			committers = committers .. committer
 		end
-		if #info.committers > vim.g.git_blame.config.max_committers then
-			committers = committers .. '(+' .. (#info.committers - vim.g.git_blame.config.max_committers) .. ' committers)'
+		if #info.committers > vim.g.git_blame_virt.config.max_committers then
+			committers = committers .. '(+' .. (#info.committers - vim.g.git_blame_virt.config.max_committers) .. ' committers)'
 		end
 		if prev == true then
-			line = line .. vim.g.git_blame.seperator .. ' '
+			line = line .. vim.g.git_blame_virt.seperator .. ' '
 		end
-		line = line .. vim.g.git_blame.icons.committer .. committers .. ' '
+		line = line .. vim.g.git_blame_virt.icons.committer .. committers .. ' '
 		prev = true
 	end
-	if vim.g.git_blame.config.display_time then
+	if vim.g.git_blame_virt.config.display_time then
 		local commit_time = os.time({
 			day = 1,
 			month = 1,
@@ -117,13 +117,13 @@ function M.display_blame_info(buf, chunk, info)
 			unit = unit .. 's'
 		end
 		if prev == true then
-			line = line .. vim.g.git_blame.seperator  .. ' '
+			line = line .. vim.g.git_blame_virt.seperator  .. ' '
 		end
 		line = line  .. u .. ' ' .. unit .. ' ago'
 	end
 	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first-1, chunk.first, true)[1]
 
-	vim.api.nvim_buf_set_extmark(buf, M.git_blame_ns, chunk.first-1, 0, {
+	vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
 		virt_lines = {
 			{
 				{ text_line:sub(1, chunk.indent):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
@@ -187,7 +187,7 @@ end
 -- The blame is taken from line `line_start` to `line_end`.
 --
 -- This function is async. Use `on_result` to specify callback function
-function M.git_blame(file, line_start, line_end, on_result)
+function M.git_blame_virt(file, line_start, line_end, on_result)
 	local Job = require'plenary.job'
 
 	Job:new({
@@ -237,8 +237,8 @@ function M.ts_extract_chunks(bufnr)
 end
 
 function M.setup(options)
-	if vim.g.git_blame == nil then
-		vim.g.git_blame = {}
+	if vim.g.git_blame_virt == nil then
+		vim.g.git_blame_virt = {}
 	end
 
 	if options == nil then
@@ -260,10 +260,10 @@ function M.setup(options)
 		}
 	}
 
-	vim.g.git_blame = vim.tbl_deep_extend('keep', options, vim.g.git_blame, defaults)
+	vim.g.git_blame_virt = vim.tbl_deep_extend('keep', options, vim.g.git_blame_virt, defaults)
 
-	if M.git_blame_ns == -1 then
-		M.git_blame_ns = vim.api.nvim_create_namespace('GitBlameNvim')
+	if M.git_blame_virt_ns == -1 then
+		M.git_blame_virt_ns = vim.api.nvim_create_namespace('GitBlameNvim')
 	end
 	
 	local agid = vim.api.nvim_create_augroup('GitBlameNvim', {
@@ -275,11 +275,11 @@ function M.setup(options)
 			local buf = vim.api.nvim_get_current_buf()
 			local name = vim.api.nvim_buf_get_name(buf)
 			if not vim.api.nvim_buf_get_option(buf, 'modified') then
-				vim.api.nvim_buf_clear_namespace(buf, M.git_blame_ns, 0, -1)
+				vim.api.nvim_buf_clear_namespace(buf, M.git_blame_virt_ns, 0, -1)
 				local chunks = M.ts_extract_chunks(buf)
 				if chunks ~= nil then
 					for _,chunk in ipairs(chunks) do
-						M.git_blame(name, chunk.first, chunk.last, function(info)
+						M.git_blame_virt(name, chunk.first, chunk.last, function(info)
 							M.display_blame_info(buf, chunk, info)
 						end)
 					end
