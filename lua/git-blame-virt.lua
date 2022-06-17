@@ -53,7 +53,15 @@ M.lang = {
 	end,
 	rust = function(node)
 		return M.ts_type_extract(node, {'function_item', 'impl_item', 'struct_item'})
-	end
+	end,
+	cpp = function(node)
+		return M.ts_type_extract(node, {
+			'function_definition',
+			'namespace_definition',
+			'class_specifier',
+			'struct_specifier'
+		})
+	end,
 }
 
 function M.display_blame_info(buf, chunk, info)
@@ -235,6 +243,25 @@ function M.ts_extract_chunks(bufnr)
 		return M.lang[ft](tree:root())
 	end
 	return nil
+end
+
+function M.ts_dump_tree(node, D)
+	local d = 0
+	if D then
+		d = D
+	end
+	if node == nil then
+		local parser = vim.treesitter.get_parser(bufnr)
+		local tree = parser:parse()[1]
+		node = tree:root()
+	end
+	for child in node:iter_children() do
+		if child:child_count() > 0 then
+			M.ts_dump_tree(child, d + 1)
+		end
+		local b, _, e, _ = child:range()
+		print(string.rep('  ', d), child, b .. ':' .. e)
+	end
 end
 
 function M.setup(options)
