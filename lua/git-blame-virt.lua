@@ -42,7 +42,6 @@ end
 M.lang = {
 	lua = function(node)
 		local chunks = require'git-blame-virt.lang.lua'.ts_chunks(node)
-		print(chunks)
 		if vim.g.git_blame_virt.debug then
 			print(vim.inspect(chunks))
 		end
@@ -50,7 +49,6 @@ M.lang = {
 	end,
 	rust = function(node)
 		local chunks = require'git-blame-virt.lang.rust'.ts_chunks(node)
-		print(chunks)
 		if vim.g.git_blame_virt.debug then
 			print(vim.inspect(chunks))
 		end
