@@ -49,7 +49,6 @@ end
 
 M.lang = {
 	lua = function(node)
-		print(node)
 		return M.ts_type_extract(node, {'function_declaration'})
 	end,
 	rust = function(node)
@@ -156,17 +155,16 @@ function M.parse_blame(lines)
 	local committers = {}
 	for _, str in ipairs(lines) do
 		local commit = ''
-		j = 1
 		for i = 1, #str do
 			if str:sub(i,i) == ' ' then
 				commit = str:sub(1, i-1)
-				j = i + 1
 				break
 			end
 		end
 
-		local i = str:find(' +%d+ +%d+%)', j)
-		local committer = str:sub(j+1, i-1)
+		local i = str:find('%(', 1)
+		local j = str:find(' +%d+ +%d+%)', i)
+		local committer = str:sub(i+1, j-1)
 		committers[committer] = true
 
 		i = str:find('%d+ +%d+%)', j)
@@ -260,7 +258,8 @@ function M.setup(options)
 			display_committers = true,
 			display_time = true,
 			max_committers = 3
-		}
+		},
+		higroup = 'Comment'
 	}
 
 	vim.g.git_blame_virt = vim.tbl_deep_extend('keep', options, vim.g.git_blame_virt, defaults)
@@ -277,7 +276,6 @@ function M.setup(options)
 		callback = function()
 			local buf = vim.api.nvim_get_current_buf()
 			local name = vim.api.nvim_buf_get_name(buf)
-			print("Index:", name)
 			if not vim.api.nvim_buf_get_option(buf, 'modified') then
 				vim.api.nvim_buf_clear_namespace(buf, M.git_blame_virt_ns, 0, -1)
 				local chunks = M.ts_extract_chunks(buf)
