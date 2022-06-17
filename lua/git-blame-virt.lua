@@ -44,7 +44,12 @@ M.lang = {
 		return M.ts_type_extract(node, {'function_declaration'})
 	end,
 	rust = function(node)
-		return M.ts_type_extract(node, {'function_item', 'impl_item', 'struct_item'})
+		local chunks = require'git-blame-virt.lang.rust'.ts_chunks(node)
+		print(chunks)
+		if vim.g.git_blame_virt.debug then
+			print(vim.inspect(chunks))
+		end
+		return chunks
 	end,
 	cpp = function(node)
 		return M.ts_type_extract(node, {
@@ -89,7 +94,7 @@ function M.display_blame_info(buf, chunk, info)
 		line = line .. vim.g.git_blame_virt.icons.committer .. committers .. ' '
 		prev = true
 	end
-	if vim.g.git_blame_virt.config.display_time and not info.commit.timestamp == 0 then
+	if vim.g.git_blame_virt.config.display_time and info.commit.timestamp ~= 0 then
 		local commit_time = os.time({
 			day = 1,
 			month = 1,
