@@ -261,7 +261,6 @@ function M.setup(options)
 	}
 
 	vim.g.git_blame = vim.tbl_deep_extend('keep', options, vim.g.git_blame, defaults)
-	print(vim.inspect(vim.g.git_blame))
 
 	if M.git_blame_ns == -1 then
 		M.git_blame_ns = vim.api.nvim_create_namespace('GitBlameNvim')
