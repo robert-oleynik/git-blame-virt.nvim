@@ -41,7 +41,12 @@ end
 
 M.lang = {
 	lua = function(node)
-		return M.ts_type_extract(node, {'function_declaration'})
+		local chunks = require'git-blame-virt.lang.lua'.ts_chunks(node)
+		print(chunks)
+		if vim.g.git_blame_virt.debug then
+			print(vim.inspect(chunks))
+		end
+		return chunks
 	end,
 	rust = function(node)
 		local chunks = require'git-blame-virt.lang.rust'.ts_chunks(node)
@@ -51,20 +56,20 @@ M.lang = {
 		end
 		return chunks
 	end,
-	cpp = function(node)
-		return M.ts_type_extract(node, {
-			'function_definition',
-			'namespace_definition',
-			'class_specifier',
-			'struct_specifier'
-		})
-	end,
-	c = function(node)
-		return M.ts_type_extract(node, {
-			'function_definition',
-			'struct_specifier'
-		})
-	end
+	-- cpp = function(node)
+	-- 	return M.ts_type_extract(node, {
+	-- 		'function_definition',
+	-- 		'namespace_definition',
+	-- 		'class_specifier',
+	-- 		'struct_specifier'
+	-- 	})
+	-- end,
+	-- c = function(node)
+	-- 	return M.ts_type_extract(node, {
+	-- 		'function_definition',
+	-- 		'struct_specifier'
+	-- 	})
+	-- end
 }
 
 function M.display_blame_info(buf, chunk, info)
