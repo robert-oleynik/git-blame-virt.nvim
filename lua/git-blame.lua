@@ -55,33 +55,78 @@ function M.ts_extract_rust(node)
 end
 
 function M.display_blame_info(buf, chunk, info)
-	local line = vim.g.git_blame.icons.git
+	local line = ''
+	local prev = false
 	if vim.g.git_blame.config.display_commit then
-		line = line ..vim.g.git_blame.spacer ..
-			'Commit: ' .. info.commits[1]
+		line = line .. vim.g.git_blame.icons.git .. ' ' .. info.commit.hash .. ' '
+		prev = true
 	end
-	if vim.g.git_blame.config.display_commit then
-		local authors = ''
-		for i,author in ipairs(info.authors) do
-			if i > vim.g.git_blame.config.max_authors then
+	if vim.g.git_blame.config.display_committers then
+		local committers = ''
+		for i,committer in ipairs(info.committers) do
+			if i > vim.g.git_blame.config.max_committers then
 				break
 			end
-			if authors ~= '' then
-				authors = authors .. ','
+			if committers ~= '' then
+				committers = committers .. ', '
 			end
-			authors = authors .. author
+			committers = committers .. committer
 		end
-		if #info.authors > vim.g.git_blame.config.max_authors then
-			authors = authors .. '(+' .. (#info.authors - vim.g.git_blame.config.max_authors) .. ' committers)'
+		if #info.committers > vim.g.git_blame.config.max_committers then
+			committers = committers .. '(+' .. (#info.committers - vim.g.git_blame.config.max_committers) .. ' committers)'
 		end
-		line = line .. vim.g.git_blame.spacer ..
-			vim.g.git_blame.icons.author ..
-			authors
+		if prev == true then
+			line = line .. vim.g.git_blame.seperator .. ' '
+		end
+		line = line .. vim.g.git_blame.icons.committer .. committers .. ' '
+		prev = true
 	end
+	if vim.g.git_blame.config.display_time then
+		local commit_time = os.time({
+			day = 1,
+			month = 1,
+			year = 1970,
+			hour = 0,
+			min = 0,
+			sec = info.commit.timestamp
+		})
+		local now = os.time()
+		local diff = os.difftime(now, commit_time)
+		local u = diff
+		local unit = nil
+		if diff < 60 then
+			unit = 'second'
+		elseif diff < 3600 then
+			u = (diff / 60)
+			unit = 'minute'
+		elseif diff < 86400 then
+			u = (diff / 3600)
+			unit = 'hour'
+		elseif diff < 2592000 then
+			u = (diff / 86400)
+			unit = 'day'
+		elseif diff < 946080000 then
+			u = (diff / 2592000)
+			unit = 'month'
+		else
+			u = (diff / 946080000)
+			unit = 'year'
+		end
+		u = math.floor(u * 10) / 10;
+		if u - 1 >= 0.1 then
+			unit = unit .. 's'
+		end
+		if prev == true then
+			line = line .. vim.g.git_blame.seperator  .. ' '
+		end
+		line = line  .. u .. ' ' .. unit .. ' ago'
+	end
+	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first-1, chunk.first, true)[1]
+
 	vim.api.nvim_buf_set_extmark(buf, M.git_blame_ns, chunk.first-1, 0, {
 		virt_lines = {
 			{
-				{ string.rep(' ', chunk.indent), '' },
+				{ text_line:sub(1, chunk.indent):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
 				{ line, 'Comment' }
 			}
 		},
@@ -94,38 +139,45 @@ end
 -- ```
 -- {
 --     commits = { '<commit hash>', ... },
---     authors = { '<name>', ... },
+--     committers = { '<name>', ... },
 -- }
 -- ```
 function M.parse_blame(lines)
 	local info = {
-		commits = {},
-		authors = {}
+		commit = {
+			hash = '',
+			timestamp = 0
+		},
+		committers = {}
 	}
-	local commits = {}
-	local authors = {}
+	local committers = {}
 	for _, str in ipairs(lines) do
+		local commit = ''
 		j = 1
 		for i = 1, #str do
 			if str:sub(i,i) == ' ' then
-				local commit = str:sub(1, i-1)
-				commits[commit] = true
+				commit = str:sub(1, i-1)
 				j = i + 1
 				break
 			end
 		end
 
-		local i = str:find('%d%d%d%d%-%d%d%-%d%d', j)
-		local author = str:sub(j+1, i-2)
-		authors[author] = true
+		local i = str:find(' +%d+ +%d+%)', j)
+		local committer = str:sub(j+1, i-1)
+		committers[committer] = true
+
+		i = str:find('%d+ +%d+%)', j)
+		j = str:find(" +%d+%)", i)
+		local timestamp = tonumber(str:sub(i, j-1), 10)
+
+		if timestamp > info.commit.timestamp then
+			info.commit.timestamp = timestamp
+			info.commit.hash = commit
+		end
 	end
 
-	for commit,_ in pairs(commits) do
-		info.commits[#info.commits + 1] = commit
-	end
-
-	for author,_ in pairs(authors) do
-		info.authors[#info.authors + 1] = author
+	for committer,_ in pairs(committers) do
+		info.committers[#info.committers + 1] = committer
 	end
 
 	return info
@@ -142,6 +194,7 @@ function M.git_blame(file, line_start, line_end, on_result)
 		command = 'git',
 		args = {
 			'blame',
+			'--date', 'unix',
 			'-L', line_start .. ',' .. line_end,
 			'--', file
 		},
@@ -196,13 +249,14 @@ function M.setup(options)
 		debug = false,
 		icons = {
 			git = '',
-			author = '👥'
+			committer = '👥'
 		},
-		spacer = ' ',
+		seperator = '|',
 		config = {
-			display_commit = true,
-			display_authors = true,
-			max_authors = 3
+			display_commit = false,
+			display_committers = true,
+			display_time = true,
+			max_committers = 3
 		}
 	}
 
