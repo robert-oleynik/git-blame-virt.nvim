@@ -11,8 +11,9 @@ Display `git blame` information of functions, structs and classes using neovim's
 
 ## Supported Languages
 
- - lua
- - rust
+ - Lua
+ - Rust
+ - C, C++
 
 ## Installation
 
