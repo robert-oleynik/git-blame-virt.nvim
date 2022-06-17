@@ -129,7 +129,7 @@ function M.display_blame_info(buf, chunk, info)
 		virt_lines = {
 			{
 				{ text_line:sub(1, chunk.indent):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
-				{ line, 'Comment' }
+				{ line, vim.g.git_blame_virt.higroup }
 			}
 		},
 		virt_lines_above = true
