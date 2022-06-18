@@ -15,6 +15,7 @@ Display `git blame` information of functions, structs and classes using neovim's
  - Rust
  - C, C++
  - Python
+ - Java
 
 ## Installation
 
