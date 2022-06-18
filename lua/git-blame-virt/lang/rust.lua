@@ -19,8 +19,8 @@ function M.ts_chunks(node)
 			child:type() == 'macro_definition' then
 			table.insert(chunks, {
 				type = child:type(),
-				first = first + 1,
-				last = last + 1,
+				first = first,
+				last = last,
 				indent = indent,
 			})
 			attribute = 0
@@ -28,8 +28,8 @@ function M.ts_chunks(node)
 			if first ~= last then
 				table.insert(chunks, {
 					type = child:type(),
-					first = first + 1,
-					last = last + 1,
+					first = first,
+					last = last,
 				})
 				local sub_chunks = M.ts_chunks(child)
 				chunks = utils.append(chunks, sub_chunks)

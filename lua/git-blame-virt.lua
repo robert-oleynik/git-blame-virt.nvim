@@ -74,7 +74,7 @@ function M.display_blame_info(buf, chunk, info, extid)
 		line = line  .. u .. ' ' .. unit .. ' ago'
 	end
 
-	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first-1, chunk.first, true)[1]
+	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first, chunk.first, true)[1]
 	local indent = text_line:find('[^%s]+', 1)
 
 	local virt_lines = {
@@ -84,13 +84,13 @@ function M.display_blame_info(buf, chunk, info, extid)
 		}
 	}
 	if extid ~= 0 then
-		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
+		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first, 0, {
 			id = extid,
 			virt_lines = virt_lines,
 			virt_lines_above = true
 		})
 	else
-		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
+		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first, 0, {
 			virt_lines = virt_lines,
 			virt_lines_above = true
 		})
@@ -157,7 +157,7 @@ function M.git_blame_virt(file, line_start, line_end, on_result)
 		args = {
 			'blame',
 			'--date', 'unix',
-			'-L', line_start .. ',' .. line_end,
+			'-L', line_start + 1 .. ',' .. line_end + 1,
 			'--', file
 		},
 		on_exit = vim.schedule_wrap(function(job, result)
@@ -266,8 +266,8 @@ function M.setup(options)
 								vim.api.nvim_buf_get_extmarks,
 								buf,
 								M.git_blame_virt_ns,
-								{chunk.first-1, 0},
-								{chunk.first-1, 0},
+								{chunk.first, 0},
+								{chunk.first, 0},
 								{limit=1}
 							)
 							if status and #marks > 0 then

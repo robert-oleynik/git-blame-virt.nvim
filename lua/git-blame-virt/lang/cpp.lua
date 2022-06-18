@@ -10,8 +10,8 @@ function M.ts_chunks(node)
 			if not template then
 				table.insert(chunks, {
 					type = child:type(),
-					first = first + 1,
-					last = last + 1,
+					first = first,
+					last = last,
 				})
 			end
 		else
@@ -21,8 +21,8 @@ function M.ts_chunks(node)
 				(child:type() == 'struct_specifier' and not template) then
 				table.insert(chunks, {
 					type = child:type(),
-					first = first + 1,
-					last = last + 1,
+					first = first,
+					last = last,
 				})
 			end
 			local cchunks = M.ts_chunks(child)

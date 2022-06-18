@@ -8,8 +8,8 @@ function M.ts_chunks(node)
 		if child:type() == 'function_declaration' or child:type() == 'function_definition' then
 			table.insert(chunks, {
 				type = child:type(),
-				first = first + 1,
-				last = last + 1,
+				first = first,
+				last = last,
 			})
 		end
 		if child:child_count() > 0 then
