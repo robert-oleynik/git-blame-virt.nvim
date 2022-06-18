@@ -62,3 +62,37 @@ require'git-blame-virt'.setup {
 	debug = false,
 }
 ```
+
+## Adding Support For Other Languages
+
+> Note: TreeSitter support for that language is required.
+
+```lua
+local utils = require'git-blame-virt.utils'
+
+-- Returns a list of chunks. Each chunk consist of three fields:
+--	- `type` Used to identify type of chunk. Usually TreeSitter node type.
+--  - `first` First line of chunk. (Note: 0-indexed)
+--  - `last` Last line of chunk (inclusive). (Note: 0-indexed)
+require'git-blame-virt'.lang['<your language>'] = function(node)
+	-- Node is a TreeSitter root node
+	local chunks = {}
+	for child in node:iter_children() do
+		local first, _, last, _ = child:range()
+		if child:type() == 'function_declaration' then
+			table.insert(chunks, {
+				type = child:type(),
+				first = first,
+				last = last
+			})
+		end
+		if child:child_count() > 0 then
+			local cchunks = M.ts_chunks(child)
+			chunks = utils.append(chunks, cchunks)
+		end
+	end
+	return chunks
+end
+```
+
+For documentation on TreeSitter see [`treesitter.txt`](https://neovim.io/doc/user/treesitter.html).
