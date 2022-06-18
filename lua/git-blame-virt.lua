@@ -74,7 +74,7 @@ function M.display_blame_info(buf, chunk, info, extid)
 		line = line  .. u .. ' ' .. unit .. ' ago'
 	end
 
-	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first, chunk.first, true)[1]
+	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first, chunk.first + 1, true)[1]
 	local indent = text_line:find('[^%s]+', 1)
 
 	local virt_lines = {
@@ -132,7 +132,7 @@ function M.parse_blame(lines)
 		j = str:find(" +%d+%)", i)
 		local timestamp = tonumber(str:sub(i, j-1), 10)
 
-		if timestamp > info.commit.timestamp then
+		if timestamp > info.commit.timestamp and commit ~= "00000000" then
 			info.commit.timestamp = timestamp
 			info.commit.hash = commit
 		end
