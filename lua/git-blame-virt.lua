@@ -33,13 +33,15 @@ M.lang = {
 }
 M.lang.c = M.lang.cpp
 
-function M.display_blame_info(buf, chunk, info)
+function M.display_blame_info(buf, chunk, info, extid)
 	local line = ''
 	local prev = false
+
 	if vim.g.git_blame_virt.config.display_commit then
 		line = line .. vim.g.git_blame_virt.icons.git .. ' ' .. info.commit.hash .. ' '
 		prev = true
 	end
+
 	if vim.g.git_blame_virt.config.display_committers then
 		local committers = ''
 		for i,committer in ipairs(info.committers) do
@@ -60,6 +62,7 @@ function M.display_blame_info(buf, chunk, info)
 		line = line .. vim.g.git_blame_virt.icons.committer .. committers .. ' '
 		prev = true
 	end
+
 	if vim.g.git_blame_virt.config.display_time and info.commit.timestamp ~= 0 then
 		local commit_time = os.time({
 			day = 1,
@@ -104,15 +107,24 @@ function M.display_blame_info(buf, chunk, info)
 	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first-1, chunk.first, true)[1]
 	local indent = text_line:find('[^%s]+', 1)
 
-	vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
-		virt_lines = {
-			{
-				{ text_line:sub(1, indent-1):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
-				{ line, vim.g.git_blame_virt.higroup }
-			}
-		},
-		virt_lines_above = true
-	})
+	local virt_lines = {
+		{
+			{ text_line:sub(1, indent-1):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
+			{ line, vim.g.git_blame_virt.higroup }
+		}
+	}
+	if extid ~= 0 then
+		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
+			id = extid,
+			virt_lines = virt_lines,
+			virt_lines_above = true
+		})
+	else
+		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first-1, 0, {
+			virt_lines = virt_lines,
+			virt_lines_above = true
+		})
+	end
 end
 
 -- Parse multi line `git blame` output.
@@ -275,12 +287,39 @@ function M.setup(options)
 			local buf = vim.api.nvim_get_current_buf()
 			local name = vim.api.nvim_buf_get_name(buf)
 			if not vim.api.nvim_buf_get_option(buf, 'modified') then
-				vim.api.nvim_buf_clear_namespace(buf, M.git_blame_virt_ns, 0, -1)
 				local chunks = M.ts_extract_chunks(buf)
 				if chunks ~= nil then
-					for _,chunk in ipairs(chunks) do
+					local extmarks = {}
+					for i,chunk in ipairs(chunks) do
 						M.git_blame_virt(name, chunk.first, chunk.last, function(info)
-							M.display_blame_info(buf, chunk, info)
+							local status, marks = pcall(
+								vim.api.nvim_buf_get_extmarks,
+								buf,
+								M.git_blame_virt_ns,
+								{chunk.first-1, 0},
+								{chunk.first-1, 0},
+								{limit=1}
+							)
+							if status and #marks > 0 then
+								local extid = marks[1][1]
+								M.display_blame_info(buf, chunk, info, extid)
+								extmarks[extid] = true
+							else
+								local id = M.display_blame_info(buf, chunk, info, 0)
+								extmarks[id] = true
+							end
+
+							if i == 1 then
+								local status, marks = pcall(vim.api.nvim_buf_get_extmarks, buf, M.git_blame_virt_ns, 0, -1, {})
+								if status then
+									for _,mark in ipairs(marks) do
+										local id = mark[1]
+										if not extmarks[id] then 
+											vim.api.nvim_buf_del_extmark(buf, M.git_blame_virt_ns, id)
+										end
+									end
+								end
+							end
 						end)
 					end
 				end
