@@ -1,4 +1,7 @@
+local utils = require'git-blame-virt.utils'
+
 local M = {}
+
 M.git_blame_virt_ns = -1
 
 M.lang = {
@@ -64,40 +67,7 @@ function M.display_blame_info(buf, chunk, info, extid)
 	end
 
 	if vim.g.git_blame_virt.config.display_time and info.commit.timestamp ~= 0 then
-		local commit_time = os.time({
-			day = 1,
-			month = 1,
-			year = 1970,
-			hour = 0,
-			min = 0,
-			sec = info.commit.timestamp
-		})
-		local now = os.time()
-		local diff = os.difftime(now, commit_time)
-		local u = diff
-		local unit = nil
-		if diff < 60 then
-			unit = 'second'
-		elseif diff < 3600 then
-			u = (diff / 60)
-			unit = 'minute'
-		elseif diff < 86400 then
-			u = (diff / 3600)
-			unit = 'hour'
-		elseif diff < 2592000 then
-			u = (diff / 86400)
-			unit = 'day'
-		elseif diff < 31536000 then
-			u = (diff / 2592000)
-			unit = 'month'
-		else
-			u = (diff / 31536000)
-			unit = 'year'
-		end
-		u = math.floor(u * 10) / 10;
-		if u - 1 >= 0.1 then
-			unit = unit .. 's'
-		end
+		local u, unit = utils.approx_rel_time(info.commit.timestamp)
 		if prev == true then
 			line = line .. vim.g.git_blame_virt.seperator  .. ' '
 		end
