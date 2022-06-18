@@ -2,7 +2,7 @@
 
 # git-blame-virt.nvim
 
-Display `git blame` information of functions, structs and classes using neovim's virt_lines
+Display `git blame` information of functions, structs and classes using Neovim's virt_lines and TreeSitter.
 
 ## Requirements
 
