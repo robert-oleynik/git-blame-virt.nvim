@@ -55,6 +55,12 @@ require'git-blame-virt'.setup {
 		-- Maximum number of names to show
 		max_committers = 3
 	},
+	ft = {
+		-- Enable/Disable file types (enabled per default)
+		lua = true,
+		tex = false,
+		-- ...
+	},
 	-- Highlight Group used to display virtual text.
 	higroup = 'Comment',
 	-- Separator to print between commit, committers and time

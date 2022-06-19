@@ -172,6 +172,7 @@ end
 -- ```
 -- {
 --    {
+--       type = <TreeSitter type>,
 --		 first = <line>,
 --		 last = <line>
 --    },
@@ -179,7 +180,8 @@ end
 -- ```
 function M.ts_extract_chunks(bufnr)
 	local ft = vim.api.nvim_buf_get_option(bufnr, 'filetype')
-	if type(M.lang[ft]) == 'function' then
+	if type(M.lang[ft]) == 'function' and
+		(vim.g.git_blame_virt.ft[ft] or vim.g.git_blame_virt.ft[ft] == nil) then
 		local parser = vim.treesitter.get_parser(bufnr)
 		local tree = parser:parse()[1]
 		return M.lang[ft](tree:root())
@@ -228,6 +230,7 @@ function M.setup(options)
 			display_time = true,
 			max_committers = 3
 		},
+		ft = {},
 		higroup = 'Comment'
 	}
 
