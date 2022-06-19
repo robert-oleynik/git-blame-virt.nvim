@@ -4,56 +4,24 @@ local M = {}
 
 M.git_blame_virt_ns = -1
 
-M.lang = {
-	lua = function(node)
-		local chunks = require'git-blame-virt.lang.lua'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	rust = function(node)
-		local chunks = require'git-blame-virt.lang.rust'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	cpp = function(node)
-		local chunks = require'git-blame-virt.lang.cpp'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	python = function(node)
-		local chunks = require'git-blame-virt.lang.python'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	java = function(node)
-		local chunks = require'git-blame-virt.lang.java'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	javascript = function(node)
-		local chunks = require'git-blame-virt.lang.javascript'.ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
-		end
-		return chunks
-	end,
-	tex = function(node)
-		local chunks = require'git-blame-virt.lang.latex'.ts_chunks(node)
+function langCallback(lang)
+	return function(node)
+		local chunks = require('git-blame-virt.lang.' .. lang).ts_chunks(node)
 		if vim.g.git_blame_virt.debug then
 			print(vim.inspect(chunks))
 		end
 		return chunks
 	end
+end
+
+M.lang = {
+	lua = langCallback('lua'),
+	rust = langCallback('rust'),
+	cpp = langCallback('cpp'),
+	python = langCallback('python'),
+	java = langCallback('java'),
+	javascript = langCallback('javascript'),
+	tex = langCallback('latex'),
 }
 M.lang.c = M.lang.cpp
 
