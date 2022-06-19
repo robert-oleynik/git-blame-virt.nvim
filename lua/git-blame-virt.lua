@@ -46,6 +46,13 @@ M.lang = {
 			print(vim.inspect(chunks))
 		end
 		return chunks
+	end,
+	tex = function(node)
+		local chunks = require'git-blame-virt.lang.latex'.ts_chunks(node)
+		if vim.g.git_blame_virt.debug then
+			print(vim.inspect(chunks))
+		end
+		return chunks
 	end
 }
 M.lang.c = M.lang.cpp

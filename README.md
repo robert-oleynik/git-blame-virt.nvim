@@ -17,6 +17,7 @@ Display `git blame` information of functions, structs and classes using Neovim's
  - Python
  - Java
  - JavaScript (not tested)
+ - LaTeX
 
 ## Installation
 
