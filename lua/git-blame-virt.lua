@@ -29,6 +29,10 @@ function M.display_blame_info(buf, chunk, info, extid)
 	local line = ''
 	local prev = false
 
+	if vim.g.git_blame_virt.debug then
+		print(vim.inspect(info))
+	end
+
 	if vim.g.git_blame_virt.config.display_commit then
 		line = line .. vim.g.git_blame_virt.icons.git .. ' ' .. info.commit.hash .. ' '
 		prev = true
@@ -254,6 +258,10 @@ function M.setup(options)
 					local extmarks = {}
 					for i,chunk in ipairs(chunks) do
 						M.git_blame_virt(name, chunk.first, chunk.last, function(info)
+							if info.commit.hash == "" or #info.committers == 0 then
+								return
+							end
+
 							local status, marks = pcall(
 								vim.api.nvim_buf_get_extmarks,
 								buf,
