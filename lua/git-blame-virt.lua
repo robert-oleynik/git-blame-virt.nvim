@@ -22,6 +22,7 @@ M.lang = {
 	java = langCallback('java'),
 	javascript = langCallback('javascript'),
 	tex = langCallback('latex'),
+	generic = langCallback('generic')
 }
 M.lang.c = M.lang.cpp
 
@@ -194,15 +195,18 @@ function M.ts_extract_chunks(bufnr)
 		local parser = vim.treesitter.get_parser(bufnr)
 		local tree = parser:parse()[1]
 		return M.lang[ft](tree:root())
+	else
+		local status, parser = pcall(vim.treesitter.get_parser, bufnr)
+		if status and (vim.g.git_blame_virt.ft[ft] or vim.g.git_blame_virt.ft[ft] == nil) then
+			local tree = parser:parse()[1]
+			return M.lang['generic'](tree:root())
+		end
 	end
 	return nil
 end
 
 function M.ts_dump_tree(node, D)
-	local d = 0
-	if D then
-		d = D
-	end
+	local d = D or 0
 	if node == nil then
 		local parser = vim.treesitter.get_parser(bufnr)
 		local tree = parser:parse()[1]

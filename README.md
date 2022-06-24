@@ -19,6 +19,8 @@ Display `git blame` information of functions, structs and classes using Neovim's
  - JavaScript (not tested)
  - LaTeX
 
+Other languages may be supported by a generic parser. Note: TreeSitter is required for all languages
+
 ## Installation
 
 [packer.nvim](https://github.com/wbthomason/packer.nvim):
