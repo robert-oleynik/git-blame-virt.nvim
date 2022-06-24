@@ -144,6 +144,11 @@ end
 -- This function is async. Use `on_result` to specify callback function
 function M.git_blame_virt(file, line_start, line_end, on_result)
 	local Job = require'plenary.job'
+	local workdir = vim.env.PWD
+	if vim.g.git_blame_virt.config.allow_foreign_repositories then
+		local Path = require'plenary.path'
+		workdir = Path:new(file):parent().filename
+	end
 
 	Job:new({
 		command = 'git',
@@ -153,9 +158,9 @@ function M.git_blame_virt(file, line_start, line_end, on_result)
 			'-L', line_start + 1 .. ',' .. line_end + 1,
 			'--', file
 		},
+		cwd = workdir,
 		on_exit = vim.schedule_wrap(function(job, result)
-			if not result == 0 then
-				print('error: Failed to execute git blame (exit code: ' .. result .. ')')
+			if result ~= 0 then
 				return
 			end
 			local blame_info = M.parse_blame(job:result())
@@ -232,7 +237,8 @@ function M.setup(options)
 			display_commit = false,
 			display_committers = true,
 			display_time = true,
-			max_committers = 3
+			max_committers = 3,
+			allow_foreign_repositories = true
 		},
 		ft = {},
 		higroup = 'Comment'

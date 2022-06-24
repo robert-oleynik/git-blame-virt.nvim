@@ -45,6 +45,7 @@ require'git-blame-virt'.setup {
 		-- Icon used in front of committer
 		committer = '👥'
 	},
+	-- Default configuration:
 	config = {
 		-- Display/Hide shorten commit hash.
 		display_commit = false,
@@ -53,7 +54,9 @@ require'git-blame-virt'.setup {
 		-- Display/Hide names approximate relative time to last commit.
 		display_time = true,
 		-- Maximum number of names to show
-		max_committers = 3
+		max_committers = 3,
+		-- Display names from other repositories
+		allow_foreign_repositories = true
 	},
 	ft = {
 		-- Enable/Disable file types (enabled per default)
@@ -78,7 +81,7 @@ require'git-blame-virt'.setup {
 local utils = require'git-blame-virt.utils'
 
 -- Returns a list of chunks. Each chunk consist of three fields:
---	- `type` Used to identify type of chunk. Usually TreeSitter node type.
+--  - `type` Used to identify type of chunk. Usually TreeSitter node type.
 --  - `first` First line of chunk. (Note: 0-indexed)
 --  - `last` Last line of chunk (inclusive). (Note: 0-indexed)
 require'git-blame-virt'.lang['<your language>'] = function(node)
