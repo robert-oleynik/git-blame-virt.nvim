@@ -1,10 +1,11 @@
+local vim = vim
 local utils = require'git-blame-virt.utils'
 
 local M = {}
 
 M.git_blame_virt_ns = -1
 
-function langCallback(lang)
+local function langCallback(lang)
 	return function(node)
 		local chunks = require('git-blame-virt.lang.' .. lang).ts_chunks(node)
 		if vim.g.git_blame_virt.debug then
@@ -208,13 +209,13 @@ end
 function M.ts_dump_tree(node, D)
 	local d = D or 0
 	if node == nil then
-		local parser = vim.treesitter.get_parser(bufnr)
+		local parser = vim.treesitter.get_parser(0)
 		local tree = parser:parse()[1]
 		node = tree:root()
 	end
 	for child in node:iter_children() do
-		local b, _, e, _ = child:range()
-		print(string.rep('  ', d), child, b .. ':' .. e)
+		local b, bc, e, ec = child:range()
+		print(string.rep('  ', d), child, b .. ':' .. bc .. '-' .. e .. ':' .. ec)
 		if child:child_count() > 0 then
 			M.ts_dump_tree(child, d + 1)
 		end
@@ -253,12 +254,13 @@ function M.setup(options)
 	if M.git_blame_virt_ns == -1 then
 		M.git_blame_virt_ns = vim.api.nvim_create_namespace('GitBlameNvim')
 	end
-	
+
 	local agid = vim.api.nvim_create_augroup('GitBlameNvim', {
 		clear = true
 	})
 	vim.api.nvim_create_autocmd({"BufWritePost", "BufEnter"}, {
 		pattern = '*',
+		group = agid,
 		callback = function()
 			local buf = vim.api.nvim_get_current_buf()
 			local name = vim.api.nvim_buf_get_name(buf)
@@ -294,7 +296,7 @@ function M.setup(options)
 								if status then
 									for _,mark in ipairs(marks) do
 										local id = mark[1]
-										if not extmarks[id] then 
+										if not extmarks[id] then
 											vim.api.nvim_buf_del_extmark(buf, M.git_blame_virt_ns, id)
 										end
 									end
