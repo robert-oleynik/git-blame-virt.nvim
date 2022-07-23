@@ -21,10 +21,8 @@ Display `git blame` information of functions, structs and classes using Neovim's
  - C, C++
  - Python
  - Java
- - JavaScript (not tested)
+ - JavaScript
  - LaTeX
-
-Other languages may be supported by a generic parser. Note: TreeSitter is required for all languages
 
 ## Installation
 
@@ -46,37 +44,53 @@ git-blame-virt can be configured using the setup function. Here is an example wi
 
 ```lua
 require'git-blame-virt'.setup {
-	icons = {
-		-- Icon used in front of git commit hashes
-		git = '',
-		-- Icon used in front of committer
-		committer = '👥'
-	},
-	-- Default configuration:
-	config = {
-		-- Display/Hide shorten commit hash.
-		display_commit = false,
-		-- Display/Hide names of committers.
-		display_committers = true,
-		-- Display/Hide names approximate relative time to last commit.
-		display_time = true,
-		-- Maximum number of names to show
-		max_committers = 3,
-		-- Display names from other repositories
-		allow_foreign_repositories = true
+	allow_foreign_repos = true,
+	display = {
+		commit_hash = true, -- Enable/Disable latest commit hash
+		commit_summary = true, -- Enable/Disable latest commit summary
+		commit_committers = true, -- Enable/Disable committers list
+		max_committer = 3, -- Limit Number of committers display in list
+		commit_time = true, -- Enable/Disable relative commit time
+		hi = 'Comment', -- Change Highlight group of default highlight function
+		fn = function(...)
+			-- See Custom Display Function
+		end
 	},
 	ft = {
-		-- Enable/Disable file types (enabled per default)
+		-- Enable/Disable plugin per filetype
 		lua = true,
-		tex = false,
+		java = true,
+		javascript = true,
+		latex = true,
+		python = true,
+		rust = true,
+		cpp = true
+	}
+}
+```
+
+## Custom Display Function
+
+```lua
+require'git-blame-virt'.setup {
+	-- ...
+	display = {
 		-- ...
-	},
-	-- Highlight Group used to display virtual text.
-	higroup = 'Comment',
-	-- Separator to print between commit, committers and time
-	seperator = '|',
-	-- Enable to print debugging logs. Not useful for most users.
-	debug = false,
+		fn = function(info)
+			-- Structure of info: {
+			--     committers = { "<name>", ... },
+			--     last = {
+			--          hash = '000...',
+			--          timestamp = 0,
+			--          summary = '...',
+			--     }
+			-- }
+			return {
+				{ '<text>', '<higlight group>' },
+				-- ...
+			}
+		end
+	}
 }
 ```
 
@@ -84,32 +98,21 @@ require'git-blame-virt'.setup {
 
 > Note: TreeSitter support for that language is required.
 
-```lua
-local utils = require'git-blame-virt.utils'
+### Adding A TreeSitter Query
 
--- Returns a list of chunks. Each chunk consist of three fields:
---  - `type` Used to identify type of chunk. Usually TreeSitter node type.
---  - `first` First line of chunk. (Note: 0-indexed)
---  - `last` Last line of chunk (inclusive). (Note: 0-indexed)
-require'git-blame-virt'.lang['<your language>'] = function(node)
-	-- Node is a TreeSitter root node
-	local chunks = {}
-	for child in node:iter_children() do
-		local first, _, last, _ = child:range()
-		if child:type() == 'function_declaration' then
-			table.insert(chunks, {
-				type = child:type(),
-				first = first,
-				last = last
-			})
-		end
-		if child:child_count() > 0 then
-			local cchunks = M.ts_chunks(child)
-			chunks = utils.append(chunks, cchunks)
-		end
-	end
-	return chunks
-end
+Add to your config before calling `setup`:
+
+```lua
+local lang = require'git-blame-virt.lang'
+lang.ts_queries['<your language>'] = [[
+	(class_definition) @node
+	(function_definition) @node
+]]
 ```
 
-For documentation on TreeSitter see [`treesitter.txt`](https://neovim.io/doc/user/treesitter.html).
+Please note: `@node` is required at the end of each statement.
+
+For Documentation on TreeSitter Queries: see [Pattern Matching With Queries]
+
+[Pattern Matching With Queries]: https://tree-sitter.github.io/tree-sitter/using-parsers#pattern-matching-with-queries
+
