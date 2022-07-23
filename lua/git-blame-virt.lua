@@ -1,314 +1,137 @@
-local vim = vim
-local utils = require'git-blame-virt.utils'
+-- SPDX-License-Identifier: BSD-2-Clause
+--
+-- Copyright (c) 2022 Robert Oleynik
 
 local M = {}
 
-M.git_blame_virt_ns = -1
+M.utils = require'git-blame-virt.utils'
+M.git = require'git-blame-virt.git'
+M.lang = require'git-blame-virt.lang'
+M.treesitter = require'git-blame-virt.treesitter'
+M.extmark = require'git-blame-virt.extmark'
 
-local function langCallback(lang)
-	return function(node)
-		local chunks = require('git-blame-virt.lang.' .. lang).ts_chunks(node)
-		if vim.g.git_blame_virt.debug then
-			print(vim.inspect(chunks))
+---Generates virt_line content from aggregated git blame information.
+---
+---@param info (table) Aggregated git blame information.
+---@return (table) Content of extmark's virtual lines.
+function M.display(info)
+	local content = {''}
+	if info.last.timestamp == 0 then
+		if M.config.display.commit_hash then
+			table.insert(content, '0000000')
 		end
-		return chunks
-	end
-end
-
-M.lang = {
-	lua = langCallback('lua'),
-	rust = langCallback('rust'),
-	cpp = langCallback('cpp'),
-	python = langCallback('python'),
-	java = langCallback('java'),
-	javascript = langCallback('javascript'),
-	tex = langCallback('latex'),
-	generic = langCallback('generic')
-}
-M.lang.c = M.lang.cpp
-
-function M.display_blame_info(buf, chunk, info, extid)
-	local line = ''
-	local prev = false
-
-	if vim.g.git_blame_virt.debug then
-		print(vim.inspect(info))
-	end
-
-	if vim.g.git_blame_virt.config.display_commit then
-		line = line .. vim.g.git_blame_virt.icons.git .. ' ' .. info.commit.hash .. ' '
-		prev = true
-	end
-
-	if vim.g.git_blame_virt.config.display_committers then
-		local committers = ''
-		for i,committer in ipairs(info.committers) do
-			if i > vim.g.git_blame_virt.config.max_committers then
-				break
-			end
-			if committers ~= '' then
-				committers = committers .. ', '
-			end
-			committers = committers .. committer
+		if M.config.display.commit_summary then
+			table.insert(content, '(Not Commited Yet)')
 		end
-		if #info.committers > vim.g.git_blame_virt.config.max_committers then
-			committers = committers .. '(+' .. (#info.committers - vim.g.git_blame_virt.config.max_committers) .. ' committers)'
-		end
-		if prev == true then
-			line = line .. vim.g.git_blame_virt.seperator .. ' '
-		end
-		line = line .. vim.g.git_blame_virt.icons.committer .. committers .. ' '
-		prev = true
-	end
-
-	if vim.g.git_blame_virt.config.display_time and info.commit.timestamp ~= 0 then
-		local u, unit = utils.approx_rel_time(info.commit.timestamp)
-		if prev == true then
-			line = line .. vim.g.git_blame_virt.seperator  .. ' '
-		end
-		line = line  .. u .. ' ' .. unit .. ' ago'
-	end
-
-	local text_line = vim.api.nvim_buf_get_lines(buf, chunk.first, chunk.first + 1, true)[1]
-	local indent = text_line:find('[^%s]+', 1)
-
-	local virt_lines = {
-		{
-			{ text_line:sub(1, indent-1):gsub('\t', string.rep(' ', vim.o.tabstop)), '' },
-			{ line, vim.g.git_blame_virt.higroup }
-		}
-	}
-	if extid ~= 0 then
-		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first, 0, {
-			id = extid,
-			virt_lines = virt_lines,
-			virt_lines_above = true
-		})
 	else
-		return vim.api.nvim_buf_set_extmark(buf, M.git_blame_virt_ns, chunk.first, 0, {
-			virt_lines = virt_lines,
-			virt_lines_above = true
-		})
-	end
-end
-
--- Parse multi line `git blame` output.
---
--- ```
--- {
---     commits = { '<commit hash>', ... },
---     committers = { '<name>', ... },
--- }
--- ```
-function M.parse_blame(lines)
-	local info = {
-		commit = {
-			hash = '',
-			timestamp = 0
-		},
-		committers = {}
-	}
-	local committers = {}
-	for _, str in ipairs(lines) do
-		local commit = ''
-		for i = 1, #str do
-			if str:sub(i,i) == ' ' then
-				commit = str:sub(1, i-1)
-				break
+		if M.config.display.commit_hash then
+			table.insert(content, info.last.hash:sub(1, 7))
+		end
+		if M.config.display.commit_summary then
+			table.insert(content, '(' .. info.last.summary .. ')')
+		end
+		if M.config.display.commit_committers then
+			local max = M.config.display.max_committer
+			local suffix = ''
+			local committers = {}
+			for i = 1, max do
+				committers[i] = info.committers[i]
 			end
+			if #info.committers > max then
+				suffix = string.format(' (+%i committers)', #info.committers - max)
+			end
+			M.utils.debug(vim.inspect(committers))
+			table.insert(content, ' ' .. M.utils.join(committers, ', ') .. suffix)
 		end
-
-		local i = str:find('%(', 1)
-		local j = str:find(' +%d+ +%d+%)', i)
-		local committer = str:sub(i+1, j-1)
-		committers[committer] = true
-
-		i = str:find('%d+ +%d+%)', j)
-		j = str:find(" +%d+%)", i)
-		local timestamp = tonumber(str:sub(i, j-1), 10)
-
-		if timestamp > info.commit.timestamp and commit ~= "00000000" then
-			info.commit.timestamp = timestamp
-			info.commit.hash = commit
+		if M.config.display.commit_time then
+		    table.insert(content, '| ' .. M.utils.rel_time_str(info.last.timestamp))
 		end
 	end
-
-	for committer,_ in pairs(committers) do
-		info.committers[#info.committers + 1] = committer
-	end
-
-	return info
+	return {
+		{ M.utils.join(content, ' '), M.config.display.hi }
+	}
 end
 
--- Runs git blame on `file` and extract git blame information from `location`.
--- The blame is taken from line `line_start` to `line_end`.
---
--- This function is async. Use `on_result` to specify callback function
-function M.git_blame_virt(file, line_start, line_end, on_result)
-	local Job = require'plenary.job'
-	local workdir = vim.env.PWD
-	if vim.g.git_blame_virt.config.allow_foreign_repositories then
-		local Path = require'plenary.path'
-		workdir = Path:new(file):parent().filename
+---Update blame information of buffer. This function is asynchronous.
+---
+---@param bufnr (number|nil) Buffer to update information. Use `nil` or `0` for current buffer
+function M.update(bufnr)
+	bufnr = bufnr or 0
+	local ft = vim.api.nvim_buf_get_option(bufnr, 'filetype')
+	M.utils.debug(vim.inspect(M.lang.fn[ft]), type(M.lang.fn[ft]))
+	if type(M.lang.fn[ft]) ~= 'function' then
+		M.utils.error('Files of type', ft, 'are not supported (yet)')
+		return
 	end
+	local chunks = M.lang.fn[ft](bufnr)
+	M.git.async_read_blame(bufnr, function(blame_info)
+		M.extmark.clear(bufnr)
+		for _, chunk in ipairs(chunks) do
+			local sym, first_line, last_line = chunk[1], chunk[2], chunk[3]
+			local info = blame_info(first_line + 1, last_line + 1)
+			M.utils.debug(vim.inspect(info))
 
-	Job:new({
-		command = 'git',
-		args = {
-			'blame',
-			'--date', 'unix',
-			'-L', line_start + 1 .. ',' .. line_end + 1,
-			'--', file
-		},
-		cwd = workdir,
-		on_exit = vim.schedule_wrap(function(job, result)
-			if result ~= 0 then
+			local text_line = vim.api.nvim_buf_get_lines(bufnr, first_line, first_line + 1, true)[1]
+			local indent = text_line:find('[^%s]+', 1)
+			local virt_lines =  {
+				{ text_line:sub(1, indent-1):gsub('\t', string.rep(' ', vim.o.tabstop)) }
+			}
+
+			local content = M.config.display.fn(info)
+			for _, c in ipairs(content) do
+				table.insert(virt_lines, c)
+			end
+			M.extmark.replace(bufnr, first_line, { virt_lines })
+		end
+	end)
+end
+
+M.config = {
+	debug = true, -- TODO: disable
+	allow_foreign_repos = true,
+	display = {
+		commit_hash = true,
+		commit_summary = true,
+		commit_committers = true,
+		max_committer = 3,
+		commit_time = true,
+		hi = 'Comment',
+		fn = M.display
+	},
+	ft = {
+		lua = true,
+		java = true,
+		javascript = true,
+		latex = true,
+		python = true,
+		rust = true,
+		cpp = true
+	}
+}
+
+function M.setup(opts)
+	opts = opts or {}
+
+	M.config = vim.tbl_deep_extend('keep', opts, M.config)
+
+	M.extmark.setup()
+	M.lang.setup()
+
+	M.augroup = vim.api.nvim_create_augroup('NvimGitBlameVirt',  { clear = true })
+	vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWritePost' }, {
+		pattern = '*',
+		callback = function(event)
+			local modified = vim.api.nvim_buf_get_option(event.buf, 'modified')
+			if modified then
 				return
 			end
-			local blame_info = M.parse_blame(job:result())
-			if type(on_result) == 'function' then
-				if blame_info then
-					on_result(blame_info)
-				else
-					on_result(nil)
-				end
+
+			local ft = vim.api.nvim_buf_get_option(event.buf, 'filetype')
+			if type(M.lang.fn[ft]) == 'function' and M.config.ft[ft] then
+				M.update(event.buf)
 			end
-		end)
-	}):start()
-end
-
--- Returns a list of all functions found by TreeSitter
---
--- Result:
--- ```
--- {
---    {
---       type = <TreeSitter type>,
---		 first = <line>,
---		 last = <line>
---    },
--- }
--- ```
-function M.ts_extract_chunks(bufnr)
-	local ft = vim.api.nvim_buf_get_option(bufnr, 'filetype')
-	if type(M.lang[ft]) == 'function' and
-		(vim.g.git_blame_virt.ft[ft] or vim.g.git_blame_virt.ft[ft] == nil) then
-		local status, parser = pcall(vim.treesitter.get_parser, bufnr)
-		if status then
-			local tree = parser:parse()[1]
-			return M.lang[ft](tree:root())
-		end
-	else
-		local status, parser = pcall(vim.treesitter.get_parser, bufnr)
-		if status and (vim.g.git_blame_virt.ft[ft] or vim.g.git_blame_virt.ft[ft] == nil) then
-			local tree = parser:parse()[1]
-			return M.lang['generic'](tree:root())
-		end
-	end
-	return nil
-end
-
-function M.ts_dump_tree(node, D)
-	local d = D or 0
-	if node == nil then
-		local parser = vim.treesitter.get_parser(0)
-		local tree = parser:parse()[1]
-		node = tree:root()
-	end
-	for child in node:iter_children() do
-		local b, bc, e, ec = child:range()
-		print(string.rep('  ', d), child, b .. ':' .. bc .. '-' .. e .. ':' .. ec)
-		if child:child_count() > 0 then
-			M.ts_dump_tree(child, d + 1)
-		end
-	end
-end
-
-function M.setup(options)
-	if vim.g.git_blame_virt == nil then
-		vim.g.git_blame_virt = {}
-	end
-
-	if options == nil then
-		options = {}
-	end
-
-	local defaults = {
-		debug = false,
-		icons = {
-			git = '',
-			committer = '👥'
-		},
-		seperator = '|',
-		config = {
-			display_commit = false,
-			display_committers = true,
-			display_time = true,
-			max_committers = 3,
-			allow_foreign_repositories = true
-		},
-		ft = {},
-		higroup = 'Comment'
-	}
-
-	vim.g.git_blame_virt = vim.tbl_deep_extend('keep', options, vim.g.git_blame_virt, defaults)
-
-	if M.git_blame_virt_ns == -1 then
-		M.git_blame_virt_ns = vim.api.nvim_create_namespace('GitBlameNvim')
-	end
-
-	local agid = vim.api.nvim_create_augroup('GitBlameNvim', {
-		clear = true
-	})
-	vim.api.nvim_create_autocmd({"BufWritePost", "BufEnter"}, {
-		pattern = '*',
-		group = agid,
-		callback = function()
-			local buf = vim.api.nvim_get_current_buf()
-			local name = vim.api.nvim_buf_get_name(buf)
-			if not vim.api.nvim_buf_get_option(buf, 'modified') then
-				local chunks = M.ts_extract_chunks(buf)
-				if chunks ~= nil then
-					local extmarks = {}
-					for i,chunk in ipairs(chunks) do
-						M.git_blame_virt(name, chunk.first, chunk.last, function(info)
-							if info.commit.hash == "" or #info.committers == 0 then
-								return
-							end
-
-							local status, marks = pcall(
-								vim.api.nvim_buf_get_extmarks,
-								buf,
-								M.git_blame_virt_ns,
-								{chunk.first, 0},
-								{chunk.first, 0},
-								{limit=1}
-							)
-							if status and #marks > 0 then
-								local extid = marks[1][1]
-								M.display_blame_info(buf, chunk, info, extid)
-								extmarks[extid] = true
-							else
-								local id = M.display_blame_info(buf, chunk, info, 0)
-								extmarks[id] = true
-							end
-
-							if i == 1 then
-								local status, marks = pcall(vim.api.nvim_buf_get_extmarks, buf, M.git_blame_virt_ns, 0, -1, {})
-								if status then
-									for _,mark in ipairs(marks) do
-										local id = mark[1]
-										if not extmarks[id] then
-											vim.api.nvim_buf_del_extmark(buf, M.git_blame_virt_ns, id)
-										end
-									end
-								end
-							end
-						end)
-					end
-				end
-			end
-		end
+		end,
+		group = M.augroup
 	})
 end
 
