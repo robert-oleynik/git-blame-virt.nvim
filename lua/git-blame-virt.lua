@@ -87,7 +87,7 @@ function M.update(bufnr)
 end
 
 M.config = {
-	debug = true, -- TODO: disable
+	debug = false,
 	allow_foreign_repos = true,
 	display = {
 		commit_hash = true,
