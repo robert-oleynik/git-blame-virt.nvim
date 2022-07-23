@@ -35,7 +35,7 @@ function M.async_read_blame(bufnr, callback)
 		cwd = workdir,
 		on_exit = vim.schedule_wrap(function(j, return_value)
 			if return_value ~= 0 then
-				utils.error('git blame: exited with', return_value)
+				utils.debug('git blame: exited with', return_value)
 				utils.debug('stderr:')
 				for _, line in ipairs(j:stderr_result()) do
 					utils.debug(line)
@@ -105,11 +105,13 @@ function M.parse_git_blame(lines)
 			for i = first_line, last_line do
 				local hash = self.lines[i]
 				local commit = self.commits[hash]
-				utils.set_insert(result.committers, commit.committer)
-				if result.last.timestamp <= commit.timestamp and hash ~= string.rep('0', 40) then
-					result.last.hash = hash
-					result.last.timestamp = commit.timestamp
-					result.last.summary = commit.summary
+				if commit then
+					utils.set_insert(result.committers, commit.committer)
+					if result.last.timestamp <= commit.timestamp and hash ~= string.rep('0', 40) then
+						result.last.hash = hash
+						result.last.timestamp = commit.timestamp
+						result.last.summary = commit.summary
+					end
 				end
 			end
 			return result
