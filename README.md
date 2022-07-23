@@ -5,7 +5,7 @@
 Display `git blame` information of functions, structs and classes using Neovim's virt_lines and TreeSitter.
 
 <div>
-<img src="https://user-images.githubusercontent.com/62473688/175044223-6f2ff2f3-a189-4bbc-8b6f-d5d008449402.png" width="700em"/>
+<img src="https://user-images.githubusercontent.com/62473688/180616046-657cbb6f-30ad-4880-9100-ce5d5c21809c.png" width="700em"/>
 </div>
 
 
