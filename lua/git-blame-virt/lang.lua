@@ -93,11 +93,6 @@ local function parse_rust()
 	local query_str = ''
 	for _, q in ipairs(queries) do
 		query_str = query_str .. string.format([[
-			(
-				(attribute_item)+
-				.
-				%s @id
-			) @node
 			%s @node
 		]], q, q)
 	end
@@ -110,29 +105,21 @@ local function parse_rust()
 		end
 
 		return treesitter.run(bufnr, function(root)
-			local ids = {}
 			local result = {}
 			for id, nodes, _ in query:iter_matches(root, bufnr) do
-				local symbol = sym[math.floor((id - 1) / 2) + 1]
-				local first_line, _, last_line, _ = nodes[2]:range()
-				local r = { symbol, first_line, last_line }
-
-				if nodes[1] ~= nil then
-					local i = utils.find(ids, nodes[1]:id())
-					if i then
-						ids[i] = nodes[1]:id()
-						result[i] = r
+				local first_line, _, last_line, _ = nodes[1]:range()
+				local data = { sym[id], first_line, last_line }
+				local node = nodes[1]:prev_sibling()
+				while node do
+					if node:type() == 'attribute_item' then
+						local first_line, _, _, _ = node:range()
+						data[2] = first_line
 					else
-						table.insert(ids, nodes[1]:id())
-						table.insert(result, r)
+						break
 					end
-				else
-					local i = utils.find(ids, nodes[2]:id())
-					if not i then
-						table.insert(ids, nodes[2]:id())
-						table.insert(result, r)
-					end
+					node = node:prev_sibling()
 				end
+				table.insert(result, data)
 			end
 			return result
 		end)

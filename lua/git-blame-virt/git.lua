@@ -19,6 +19,10 @@ function M.async_read_blame(bufnr, callback)
 	local filename = vim.api.nvim_buf_get_name(bufnr)
 	utils.debug('git-blame parse file:', filename)
 
+	if not path:new(filename):exists() then
+		return
+	end
+
 	local workdir = config.allow_foreign_repos and path:new(filename):parent().filename or vim.env.CWD
 	utils.debug('workdir:', workdir)
 
