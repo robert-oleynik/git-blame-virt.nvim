@@ -3,8 +3,8 @@
 -- Copyright (c) 2022 Robert Oleynik
 
 local M = {}
-local treesitter = require'git-blame-virt.treesitter'
-local utils = require'git-blame-virt.utils'
+local treesitter = require("git-blame-virt.treesitter")
+local utils = require("git-blame-virt.utils")
 
 M.ts_queries = {
 	lua = [[
@@ -27,81 +27,78 @@ M.ts_queries = {
 	python = [[
 	(function_definition) @node
 	(class_definition) @node
-	]]
+	]],
 }
 
 M.ts_symbols = {
 	lua = {
-		'function'
+		"function",
 	},
 	rust = {
-		'function',
-		'mod',
-		'enum',
-		'struct',
-		'macro',
-		'trait_item'
+		"function",
+		"mod",
+		"enum",
+		"struct",
+		"macro",
+		"trait_item",
 	},
 	cpp = {
-		'struct',
-		'class',
-		'template',
-		'function'
+		"struct",
+		"class",
+		"template",
+		"function",
 	},
 	java = {
-		'method',
-		'class'
+		"method",
+		"class",
 	},
 	javascript = {
-		'function'
+		"function",
 	},
 	latex = {
-		'chapter',
-		'section',
-		'subsection',
-		'subsubsection'
+		"chapter",
+		"section",
+		"subsection",
+		"subsubsection",
 	},
 	python = {
-		'function',
-		'class'
-	}
+		"function",
+		"class",
+	},
 }
 
 M.queries = {
-	rust = {
-		'(function_item)',
-		'(mod_item body: (_))',
-		'(enum_item)',
-		'(struct_item)',
-		'(macro_definition)',
-		'(trait_item)'
-	},
-	cpp = {
-		'(struct_specifier)',
-		'(class_specifier)',
-		'(template_declaration)',
-		'(function_definition)',
-	}
+	rust = [[
+	(function_item) @node
+	(mod_item body: (_)) @node
+	(enum_item) @node
+	(struct_item) @node
+	(macro_definition) @node
+	(trait_item) @node
+	]],
+	cpp = [[
+	(namespace_definition) @node
+	(template_declaration (struct_specifier) @id) @node
+	(struct_specifier) @node
+	(template_declaration (class_specifier) @id) @node
+	(class_specifier) @node
+	(template_declaration (function_definition) @id) @node
+	(function_definition) @node
+	(template_declaration (template_declaration) @id) @node
+	(template_declaration) @node
+	]],
 }
 
 M.fn = {}
 
 local function parse_rust()
 	local sym = M.ts_symbols.rust
-	local queries = M.queries.rust
+	local query = vim.treesitter.query.parse("rust", M.queries.rust)
 
-	local query_str = ''
-	for _, q in ipairs(queries) do
-		query_str = query_str .. string.format([[
-			%s @node
-		]], q, q)
-	end
-	local query = vim.treesitter.query.parse_query('rust', query_str)
-
-	M.fn['rust'] = function(bufnr)
+	M.fn["rust"] = function(bufnr)
 		bufnr = bufnr or 0
 		if query == nil then
-			utils.error('Invalid query (language: rust)')
+			utils.error("Invalid query (language: rust)")
 		end
 
 		return treesitter.run(bufnr, function(root)
@@ -111,7 +108,7 @@ local function parse_rust()
 				local data = { sym[id], first_line, last_line }
 				local node = nodes[1]:prev_sibling()
 				while node do
-					if node:type() == 'attribute_item' then
+					if node:type() == "attribute_item" then
 						local first_line, _, _, _ = node:range()
 						data[2] = first_line
 					else
@@ -128,23 +125,12 @@ end
 
 local function parse_cpp()
 	local sym = M.ts_symbols.cpp
-	local queries = M.queries.cpp
-
-	local query_str = [[
-	(namespace_definition) @node
-	]]
-	for _, q in ipairs(queries) do
-		query_str = query_str .. string.format([[
-			(template_declaration %s @id) @node
-			%s @node
-		]], q, q)
-	end
-	local query = vim.treesitter.query.parse_query('cpp', query_str)
+	local query = vim.treesitter.query.parse("rust", M.queries.rust)
 
 	M.fn.cpp = function(bufnr)
 		bufnr = bufnr or 0
 		if query == nil then
-			utils.error('Invalid query (language: cpp)')
+			utils.error("Invalid query (language: cpp)")
 		end
 
 		return treesitter.run(bufnr, function(root)
@@ -153,7 +139,7 @@ local function parse_cpp()
 			for id, nodes, _ in query:iter_matches(root, bufnr) do
 				local first_line, _, last_line, _ = nodes[1]:range()
 				if id == 1 then
-					table.insert(result, { 'namespace', first_line, last_line })
+					table.insert(result, { "namespace", first_line, last_line })
 				else
 					local symbol = sym[math.floor((id - 1) / 2)]
 					local r = { symbol, first_line, last_line }

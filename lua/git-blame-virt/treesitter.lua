@@ -3,7 +3,7 @@
 -- Copyright (c) 2022 Robert Oleynik
 
 local M = {}
-local utils = require'git-blame-virt.utils'
+local utils = require("git-blame-virt.utils")
 
 ---Generates a function which is used to build a list line spans from a buffer.
 ---
@@ -12,13 +12,13 @@ local utils = require'git-blame-virt.utils'
 ---@param sym (table) Table of symbol names identified by query. Table is indexed by ids.
 ---
 ---@return (fun(number)) Returns a function which returns a list of symbols and line spans
---- identified by query. 
+--- identified by query.
 function M.parse_query(lang, query, sym)
-	local query = vim.treesitter.query.parse_query(lang, query)
+	local query = vim.treesitter.query.parse(lang, query)
 	return function(bufnr)
 		bufnr = bufnr or 0
 		if query == nil then
-			utils.error('Invalid query (language: ' .. lang .. ')')
+			utils.error("Invalid query (language: " .. lang .. ")")
 			return {}
 		end
 
