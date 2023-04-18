@@ -115,7 +115,7 @@ function M.setup(opts)
 	M.config = vim.tbl_deep_extend("keep", opts, M.config)
 
 	M.extmark.setup()
-	M.lang.setup()
+	-- M.lang.setup()
 
 	M.augroup = vim.api.nvim_create_augroup("NvimGitBlameVirt", { clear = true })
 	vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
@@ -127,6 +127,7 @@ function M.setup(opts)
 			end
 
 			local ft = vim.api.nvim_buf_get_option(event.buf, "filetype")
+			M.lang.setup(ft)
 			if type(M.lang.fn[ft]) == "function" and M.config.ft[ft] then
 				M.update(event.buf)
 			end

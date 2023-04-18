@@ -90,6 +90,7 @@ M.queries = {
 }
 
 M.fn = {}
+M.is_setup = {}
 
 local function parse_rust()
 	local sym = M.ts_symbols.rust
@@ -168,12 +169,17 @@ local function parse_cpp()
 end
 
 ---Setup TreeSitter queries.
-function M.setup()
-	for lang, query in pairs(M.ts_queries) do
-		M.fn[lang] = M.fn[lang] or treesitter.parse_query(lang, query, M.ts_symbols[lang])
+function M.setup(lang)
+	if lang == "rust" and not M.is_setup["rust"] then
+		M.is_setup["rust"] = true
+		parse_rust()
+	elseif lang == "cpp" and not M.is_setup["cpp"] then
+		M.is_setup["cpp"] = true
+		parse_cpp()
+	elseif M.ts_queries[lang] and not M.is_setup[lang] then
+		M.is_setup["lang"] = true
+		M.fn[lang] = M.fn[lang] or treesitter.parse_query(lang, M.ts_queries[lang], M.ts_symbols[lang])
 	end
-	parse_rust()
-	parse_cpp()
 end
 
 return M
