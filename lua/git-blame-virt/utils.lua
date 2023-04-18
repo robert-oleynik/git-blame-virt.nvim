@@ -5,23 +5,23 @@
 local M = {}
 
 function M.debug(...)
-	local config = require'git-blame-virt'.config
+	local config = require("git-blame-virt").config
 	if not config.debug then
 		return
 	end
-	local msg = ''
-	for _, v in ipairs { ... } do
-		msg = msg .. tostring(v) .. ' '
+	local msg = ""
+	for _, v in ipairs({ ... }) do
+		msg = msg .. tostring(v) .. " "
 	end
 	print(msg)
 end
 
 function M.error(...)
-	local msg = ''
-	for _, v in ipairs { ... } do
-		msg = msg .. tostring(v) .. ' '
+	local msg = ""
+	for _, v in ipairs({ ... }) do
+		msg = msg .. tostring(v) .. " "
 	end
-	msg = msg .. '\n'
+	msg = msg .. "\n"
 	vim.api.nvim_err_writeln(msg)
 end
 
@@ -30,7 +30,7 @@ end
 ---@param input (string) Input to check.
 ---@return (bool) Returns true if input matches hex string.
 function M.begins_with_sha1(input)
-	return input:match('^' .. string.rep('%x', 40))
+	return input:match("^" .. string.rep("%x", 40))
 end
 
 ---Add element to set if not already added.
@@ -52,7 +52,7 @@ end
 ---@param sep (string) String seperator.
 ---@return (string) Returns joined string.
 function M.join(array, sep)
-	local result = ''
+	local result = ""
 	for i, v in ipairs(array) do
 		result = result .. v
 		if i ~= #array then
@@ -92,35 +92,39 @@ end
 
 function M.rel_time_str(timestamp)
 	local time = os.time({
-		day = 1, month = 1, year = 1970,
-		hour = 0, min = 0, sec = timestamp
+		day = 1,
+		month = 1,
+		year = 1970,
+		hour = 0,
+		min = 0,
+		sec = timestamp,
 	})
-	local now = os.time(os.date('!*t'))
+	local now = os.time(os.date("!*t"))
 	local diff = os.difftime(now, time)
 	local u = diff
 	if diff < 60 then
-		unit = 'second'
+		unit = "second"
 	elseif diff < 3600 then
 		u = (diff / 60)
-		unit = 'minute'
+		unit = "minute"
 	elseif diff < 86400 then
 		u = (diff / 3600)
-		unit = 'hour'
+		unit = "hour"
 	elseif diff < 2592000 then
 		u = (diff / 86400)
-		unit = 'day'
+		unit = "day"
 	elseif diff < 31536000 then
 		u = (diff / 2592000)
-		unit = 'month'
+		unit = "month"
 	else
 		u = (diff / 31536000)
-		unit = 'year'
+		unit = "year"
 	end
-	u = math.floor(u * 10) / 10;
+	u = math.floor(u * 10) / 10
 	if math.abs(u - 1) >= 0.1 then
-		unit = unit .. 's'
+		unit = unit .. "s"
 	end
-	return u .. ' ' .. unit
+	return u .. " " .. unit
 end
 
 return M

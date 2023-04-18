@@ -7,7 +7,7 @@ local M = {}
 M.ns = nil
 
 function M.setup()
-	M.ns = M.ns or vim.api.nvim_create_namespace('GitBlameVirtNvim')
+	M.ns = M.ns or vim.api.nvim_create_namespace("GitBlameVirtNvim")
 end
 
 ---Adds a new virtual line above linum. If virtual line already exists replace text of virtual
@@ -20,19 +20,26 @@ end
 ---@return (number) Returns id of extmark.
 function M.replace(bufnr, linum, content)
 	bufnr = bufnr or 0
-	local status, extmarks = pcall(vim.api.nvim_buf_get_extmarks, bufnr, M.ns, {linum,0}, {linum,0}, {limit=1})
+	local status, extmarks = pcall(
+		vim.api.nvim_buf_get_extmarks,
+		bufnr,
+		M.ns,
+		{ linum, 0 },
+		{ linum, 0 },
+		{ limit = 1 }
+	)
 	if status and extmarks[1] then
 		local mark = extmarks[1][1]
 		vim.api.nvim_buf_set_extmark(bufnr, M.ns, linum, 0, {
 			id = mark,
 			virt_lines_above = true,
-			virt_lines = content
+			virt_lines = content,
 		})
 		return mark
 	else
 		return vim.api.nvim_buf_set_extmark(bufnr, M.ns, linum, 0, {
 			virt_lines_above = true,
-			virt_lines = content
+			virt_lines = content,
 		})
 	end
 end
@@ -43,7 +50,14 @@ end
 ---@param exclude (table) IDs of extmarks to exclude.
 function M.remove_all(bufnr, exclude)
 	bufnr = bufnr or 0
-	local status, extmarks = pcall(vim.api.nvim_buf_get_extmarks, bufnr, M.ns, {linum,0}, {linum,0}, {limit=1})
+	local status, extmarks = pcall(
+		vim.api.nvim_buf_get_extmarks,
+		bufnr,
+		M.ns,
+		{ linum, 0 },
+		{ linum, 0 },
+		{ limit = 1 }
+	)
 	if status then
 		for _, mark in ipairs(extmarks) do
 			if not utils.contains(exclude, mark[1]) then
